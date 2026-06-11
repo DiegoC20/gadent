@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="80mm"
+   height="150mm"
+   viewBox="0 0 80 150"
+   version="1.1"
+   id="svg9198"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="s31_aparato_ortodontico_3.svg">
+  <defs
+     id="defs9192" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="-151.49269"
+     inkscape:cy="431.86729"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata9195">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-17.731621,-18.488087)">
+    <rect
+       style="opacity:1;fill:none;fill-opacity:1;stroke:none;stroke-width:4.0919075;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect9200"
+       width="80"
+       height="150"
+       x="-97.731621"
+       y="18.488087"
+       transform="scale(-1,1)" />
+    <g
+       id="g1034"
+       transform="matrix(-1.1570758,0,0,1.1570758,-185.41465,-11.665835)"
+       inkscape:export-filename="G:\Product development\HCE dental\simbolos\odont_symbol1_blue (arrastrar).png"
+       inkscape:export-xdpi="12.903204"
+       inkscape:export-ydpi="12.903204"
+       style="fill:none;fill-opacity:1;stroke:#0880d7;stroke-opacity:1">
+      <path
+         inkscape:export-ydpi="19.049997"
+         inkscape:export-xdpi="19.049997"
+         inkscape:connector-curvature="0"
+         id="path914-5"
+         d="M -210.43648,48.109961 V 35.665062"
+         style="opacity:1;fill:none;fill-opacity:1;stroke:#0880d7;stroke-width:2.46115041;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <rect
+         inkscape:export-ydpi="19.049997"
+         inkscape:export-xdpi="19.049997"
+         ry="0"
+         y="30.66749"
+         x="-221.65652"
+         height="22.440041"
+         width="22.440041"
+         id="rect869"
+         style="opacity:1;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#0880d7;stroke-width:2.24413776;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="19.049997"
+         inkscape:export-xdpi="19.049997"
+         inkscape:connector-curvature="0"
+         id="path914"
+         d="m -216.65893,41.887512 h 12.44489"
+         style="opacity:1;fill:none;fill-opacity:1;stroke:#0880d7;stroke-width:2.46115041;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    </g>
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#0880d7;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 44.03726,36.80119 H 19.231621 v 0.677532"
+       id="path880"
+       inkscape:connector-curvature="0"
+       inkscape:export-xdpi="12.903204"
+       inkscape:export-ydpi="12.903204"
+       inkscape:export-filename="G:\Product development\HCE dental\simbolos\odont_symbol1_blue (arrastrar).png" />
+  </g>
+</svg>

@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="80mm"
+   height="150mm"
+   viewBox="0 0 80 150"
+   version="1.1"
+   id="svg885"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="s8-restauracion-definitiva.svg">
+  <defs
+     id="defs879">
+    <inkscape:path-effect
+       only_selected="false"
+       apply_with_weight="true"
+       apply_no_weight="true"
+       helper_size="0"
+       steps="2"
+       weight="33.333333"
+       is_visible="true"
+       id="path-effect12959"
+       effect="bspline" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="-27.5"
+     inkscape:cy="274.28577"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata882">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-2.2678571,-147.00002)">
+    <rect
+       style="fill:#e31e26;fill-opacity:1;stroke:none;stroke-width:0.12397116;opacity:0"
+       id="rect887"
+       width="80"
+       height="150"
+       x="2.2678571"
+       y="147.00002" />
+    <rect
+       style="opacity:1;fill:#e8281e;fill-opacity:1;stroke:none;stroke-width:0.23161231"
+       id="rect1432"
+       width="35.022999"
+       height="24.979"
+       x="24.869858"
+       y="230.68202"
+       ry="12.4895" />
+  </g>
+</svg>

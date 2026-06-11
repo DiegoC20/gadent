@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="80mm"
+   height="80mm"
+   viewBox="0 0 80 80"
+   version="1.1"
+   id="svg18"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="s6_pieza_ausente_thumb.svg">
+  <defs
+     id="defs12" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="-622.14287"
+     inkscape:cy="300.40287"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata15">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-29.482143,-188.27353)">
+    <rect
+       id="rect20"
+       width="80"
+       height="80"
+       x="29.482143"
+       y="188.27353"
+       style="fill:none;stroke:none;stroke-width:0.11679447;stroke-opacity:1" />
+    <path
+       style="fill:none;stroke:#0880d7;stroke-width:2.89205122;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 44.245122,264.58151 94.719164,191.96554"
+       id="path827"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;stroke:#0880d7;stroke-width:2.89205122;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 94.719164,264.58151 44.245122,191.96554"
+       id="path827-0"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>

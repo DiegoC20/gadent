@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 150">
+  <g transform="translate(-31.75,-119.78571)">
+    <g transform="matrix(5.5653852,0,0,5.5294215,-108.29553,1551.1588)" fill="#fff">
+      <rect y="-245.32828" x="27.04504" height="7.6526828" width="10.660324" fill="none" stroke="#000" stroke-width="0.12057813"/>
+      <rect y="-243.7607" x="29.208588" height="4.5175204" width="6.2929864" fill="none" stroke="#000" stroke-width="0.12057813"/>
+      <path d="m 35.513533,-243.76071 2.183681,-1.5676" fill="none" stroke="#000" stroke-width="0.12057813"/>
+      <path d="m 27.03689,-237.67561 2.183679,-1.56758" fill="none" stroke="#000" stroke-width="0.12057813"/>
+      <path d="m 29.220553,-243.76072 -2.183679,-1.5676" fill="none" stroke="#000" stroke-width="0.12057813"/>
+      <path d="m 37.697222,-237.67562 -2.183681,-1.56759" fill="none" stroke="#000" stroke-width="0.12057813"/>
+      <rect y="-243.76054" x="31.353439" height="4.5150208" width="2.2220058" fill="none" stroke="#000" stroke-width="0.11991011"/>
+      <path d="m 29.22169,-241.50197 h 6.288813" fill="none" stroke="#000" stroke-width="0.12057813"/>
+      <path d="m 30.049136,-245.32829 2.32954,-7.45648 2.322668,7.45648" fill="none" stroke="#000" stroke-width="0.1208164"/>
+      <path d="m 27.045042,-245.32828 2.321378,-7.45652 1.523827,4.75919" fill="none" stroke="#000" stroke-width="0.1208164"/>
+      <path d="m 33.876819,-248.12206 1.497733,-4.66271 2.330813,7.45649" fill="none" stroke="#000" stroke-width="0.1208164"/>
+    </g>
+  </g>
+</svg>
