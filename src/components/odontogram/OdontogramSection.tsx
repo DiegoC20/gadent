@@ -22,6 +22,11 @@ import {
 import type { SurfaceModalType } from './SurfaceModal'
 import { SURFACE_MODAL_CONFIG } from './SurfaceModal'
 import ToothButton from './ToothButton'
+import MultipleMarkingPopover from './MultipleMarkingPopover'
+import MultipleMarkingView, { type MultipleMarkingTarget, getDisplayLabel } from './MultipleMarkingView'
+import MultipleMarkingCancelModal from './MultipleMarkingCancelModal'
+import MultipleMarkingConfirmModal from './MultipleMarkingConfirmModal'
+import { useRef } from 'react'
 
 function ToothRow({
   teeth,
@@ -102,10 +107,16 @@ function ToothRow({
 function OdontogramSection() {
   const [activeTab, setActiveTab] = useState<'inicial' | 'evolucion' | 'alta'>('inicial')
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null)
-  const [multipleMarking, setMultipleMarking] = useState(false)
+  const [multipleMarkingOpen, setMultipleMarkingOpen] = useState(false)
+  const multipleMarkingRef = useRef<HTMLButtonElement>(null)
   const [toothFindings, setToothFindings] = useState<ToothFindingsMap>({})
   const [orthoGroups, setOrthoGroups] = useState<OrthoGroup[]>([])
   const [pendingOrtho, setPendingOrtho] = useState<PendingOrtho | null>(null)
+  const [multipleMarkingTarget, setMultipleMarkingTarget] = useState<{ finding: DentalFinding, action: FindingAction } | null>(null)
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [affectedTeethForConfirm, setAffectedTeethForConfirm] = useState<{ tooth: number, surfaces: ToothSurface[] }[]>([])
+  const [toothFindingsBackup, setToothFindingsBackup] = useState<ToothFindingsMap | null>(null)
 
   const hasTreatmentRows = Object.keys(toothFindings).length > 0 || orthoGroups.length > 0
 
@@ -166,6 +177,54 @@ function OdontogramSection() {
     }))
   }
 
+  function handleToggleSurfaceMultiple(tooth: number, type: string, surface: ToothSurface | 'completo') {
+    setToothFindings((prev) => {
+      const findings = prev[tooth] ?? []
+      const existingIndex = findings.findIndex((f) => f.findingId === type)
+      
+      if (existingIndex >= 0) {
+        if (surface === 'completo') {
+          // Toggle off whole tooth finding
+          const updatedFindings = [...findings]
+          updatedFindings.splice(existingIndex, 1)
+          return { ...prev, [tooth]: updatedFindings }
+        }
+
+        // Ya existe, modificar superficies
+        const existing = findings[existingIndex]
+        const newSurfaces = existing.surfaces?.includes(surface as ToothSurface)
+          ? existing.surfaces.filter((s) => s !== surface)
+          : [...(existing.surfaces ?? []), surface as ToothSurface]
+          
+        if (newSurfaces.length === 0) {
+          // Remover finding si ya no tiene superficies
+          const updatedFindings = [...findings]
+          updatedFindings.splice(existingIndex, 1)
+          return { ...prev, [tooth]: updatedFindings }
+        } else {
+          const updatedFindings = [...findings]
+          updatedFindings[existingIndex] = { ...existing, surfaces: newSurfaces }
+          return { ...prev, [tooth]: updatedFindings }
+        }
+      } else {
+        // No existe, crearlo
+        const variant = multipleMarkingTarget?.action.variant || 'blue'
+        const label = multipleMarkingTarget?.finding.label || ''
+        const surfacesToSet = surface === 'completo' ? [] : [surface as ToothSurface]
+        
+        const newFinding: AppliedFinding = {
+          id: `${tooth}-${type}-${Date.now()}`,
+          findingId: type,
+          label,
+          variant,
+          icon: '',
+          surfaces: surfacesToSet,
+        }
+        return { ...prev, [tooth]: [...findings, newFinding] }
+      }
+    })
+  }
+
   /** Paso 1: usuario clickea el botón ortho en el popover de un diente */
   function handleOrthoAction(
     tooth: number,
@@ -211,6 +270,72 @@ function OdontogramSection() {
 
   function handleRemoveOrthoGroup(groupId: string) {
     setOrthoGroups((prev) => prev.filter((g) => g.id !== groupId))
+  }
+
+  function handleFinishMultipleMarking() {
+    if (!multipleMarkingTarget) return
+
+    const type = multipleMarkingTarget.finding.id
+                 
+    const affected: { tooth: number; surfaces: ToothSurface[] }[] = []
+
+    for (const toothStr in toothFindings) {
+      const toothNum = parseInt(toothStr, 10)
+      const currentList = toothFindings[toothNum]
+      const backupList = toothFindingsBackup?.[toothNum] ?? []
+      
+      const currentFinding = currentList.find(f => f.findingId === type)
+      const backupFinding = backupList.find(f => f.findingId === type)
+      
+      if (currentFinding && currentFinding.surfaces) {
+        const currentSurfaces = [...currentFinding.surfaces].sort().join(',')
+        const backupSurfaces = backupFinding?.surfaces ? [...backupFinding.surfaces].sort().join(',') : ''
+        
+        if (currentSurfaces !== backupSurfaces && currentFinding.surfaces.length > 0) {
+          affected.push({ tooth: toothNum, surfaces: currentFinding.surfaces })
+        }
+      }
+    }
+
+    const findingId = multipleMarkingTarget.finding.id
+    const hasOptions = findingId === 'caries' || findingId === 'restau-ok' || findingId === 'restau-nok' || findingId === 'defectos-esmalte' || findingId === 'movilidad' || findingId === 'posicion'
+
+    if (affected.length > 0 && hasOptions) {
+      setAffectedTeethForConfirm(affected)
+      setShowConfirmModal(true)
+    } else {
+      setMultipleMarkingTarget(null)
+      setToothFindingsBackup(null)
+    }
+  }
+
+  function handleConfirmSave(optionsMap: Record<number, string>) {
+    if (!multipleMarkingTarget) return
+    const type = multipleMarkingTarget.finding.id
+
+    if (Object.keys(optionsMap).length > 0) {
+      setToothFindings(prev => {
+        const nextMap = { ...prev }
+        for (const toothStr in optionsMap) {
+          const tooth = parseInt(toothStr, 10)
+          const opt = optionsMap[tooth]
+          const list = nextMap[tooth]
+          if (list) {
+            const idx = list.findIndex(f => f.findingId === type)
+            if (idx !== -1) {
+              const newList = [...list]
+              newList[idx] = { ...newList[idx], option: opt }
+              nextMap[tooth] = newList
+            }
+          }
+        }
+        return nextMap
+      })
+    }
+
+    setMultipleMarkingTarget(null)
+    setToothFindingsBackup(null)
+    setShowConfirmModal(false)
   }
 
   return (
@@ -259,258 +384,339 @@ function OdontogramSection() {
       </div>
 
       {/* Fila 2: marcado múltiple (izquierda) + doctor, tipo, nomenclatura (derecha) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 text-xs">
-        <button
-          type="button"
-          onClick={() => setMultipleMarking(!multipleMarking)}
-          className={`flex items-center gap-1.5 rounded border px-3 py-1.5 ${multipleMarking
-              ? 'border-cyan-400 bg-cyan-50 text-cyan-700'
-              : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-          </svg>
-          Marcado múltiple
-        </button>
-
-        <div className="flex flex-wrap items-center gap-4">
-          <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
-            <legend className="px-1 text-[11px] text-gray-500">Doctor</legend>
-            <select className="min-w-[130px] bg-transparent text-sm text-gray-700 outline-none">
-              <option>Diego Cruzado</option>
-            </select>
-          </fieldset>
-          <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
-            <legend className="px-1 text-[11px] text-gray-500">Tipo</legend>
-            <select className="min-w-[90px] bg-transparent text-sm text-gray-700 outline-none">
-              <option>Adultos</option>
-              <option>Niños</option>
-            </select>
-          </fieldset>
-          <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
-            <legend className="px-1 text-[11px] text-gray-500">Nomenclatura</legend>
-            <select className="min-w-[120px] bg-transparent text-sm text-gray-700 outline-none">
-              <option>Internacional</option>
-              <option>Universal</option>
-            </select>
-          </fieldset>
-        </div>
-      </div>
-
-      {/* Chart */}
-      <div className="overflow-x-auto overflow-y-visible px-4 py-6">
-        <div className="relative mx-auto w-full min-w-[820px] space-y-5">
-          <ToothRow
-            teeth={[...upperRightTeeth, ...upperLeftTeeth]}
-            position="upper"
-            selectedTooth={selectedTooth}
-            toothFindings={toothFindings}
-            orthoGroups={orthoGroups}
-            pendingOrtho={pendingOrtho}
-            onSelectTooth={setSelectedTooth}
-            onSelectFinding={handleSelectFinding}
-            onRemoveAllFindings={handleRemoveAllFindings}
-            onRemoveFinding={handleRemoveFinding}
-            onApplySurfaceFindings={handleApplySurfaceFindings}
-            onOrthoAction={handleOrthoAction}
-            onOrthoSecondClick={handleOrthoSecondClick}
-            onRemoveOrthoGroup={handleRemoveOrthoGroup}
-          />
-          <div className="h-px w-full bg-gray-300" />
-          <ToothRow
-            teeth={[...lowerRightTeeth, ...lowerLeftTeeth]}
-            position="lower"
-            selectedTooth={selectedTooth}
-            toothFindings={toothFindings}
-            orthoGroups={orthoGroups}
-            pendingOrtho={pendingOrtho}
-            onSelectTooth={setSelectedTooth}
-            onSelectFinding={handleSelectFinding}
-            onRemoveAllFindings={handleRemoveAllFindings}
-            onRemoveFinding={handleRemoveFinding}
-            onApplySurfaceFindings={handleApplySurfaceFindings}
-            onOrthoAction={handleOrthoAction}
-            onOrthoSecondClick={handleOrthoSecondClick}
-            onRemoveOrthoGroup={handleRemoveOrthoGroup}
-          />
-        </div>
-      </div>
-
-      {/* Plan de tratamiento */}
-      <div className="border-t border-gray-200 px-4 pb-4 pt-3">
-        <h3 className="mb-3 text-sm font-semibold text-gray-700">Plan de tratamiento</h3>
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-[#33475b] text-white">
-              <th className="px-4 py-2.5 text-left font-medium">N° diente</th>
-              <th className="px-4 py-2.5 text-left font-medium">Hallazgo</th>
-              <th className="px-4 py-2.5 text-left font-medium">Servicios</th>
-              <th className="px-4 py-2.5 text-left font-medium">Nota</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!hasTreatmentRows && (
-              <tr>
-                <td colSpan={4} className="border border-gray-200 bg-white py-6 text-center text-xs text-gray-400">
-                  {selectedTooth
-                    ? `Selecciona un hallazgo para el diente ${selectedTooth}`
-                    : 'Haz clic en un diente para registrar hallazgos'}
-                </td>
-              </tr>
-            )}
-
-            {/* Filas de hallazgos por diente */}
-            {Object.entries(toothFindings).flatMap(([toothStr, findings]) =>
-              findings.map((row) => {
-                let displayToothStr = toothStr
-                if (row.findingId === 'supernumeraria') {
-                  const toothNum = parseInt(toothStr, 10)
-                  const upperRow = [...upperRightTeeth, ...upperLeftTeeth]
-                  const lowerRow = [...lowerRightTeeth, ...lowerLeftTeeth]
-                  
-                  const upperIdx = upperRow.indexOf(toothNum)
-                  if (upperIdx !== -1 && upperIdx < upperRow.length - 1) {
-                    displayToothStr = `${toothStr}-${upperRow[upperIdx + 1]}`
-                  } else {
-                    const lowerIdx = lowerRow.indexOf(toothNum)
-                    if (lowerIdx !== -1 && lowerIdx < lowerRow.length - 1) {
-                      displayToothStr = `${toothStr}-${lowerRow[lowerIdx + 1]}`
-                    }
-                  }
-                }
-
-                return (
-                  <tr key={row.id} className="border-b border-gray-200">
-                    <td className="border border-gray-200 px-4 py-2">{displayToothStr}</td>
-                    <td className="border border-gray-200 px-4 py-2">
-                    <span className="flex items-center gap-1.5">
-                      <span className={`h-2 w-2 shrink-0 rounded-full ${row.findingId === 'defectos-esmalte' ? 'bg-yellow-400' :
-                          row.findingId === 'extraccion' ? 'bg-red-500' :
-                            row.findingId === 'fractura' ? 'bg-red-500' :
-                              row.findingId === 'frenillo-corto' ? 'bg-red-500' :
-                                row.findingId === 'fusion' ? 'bg-blue-500' :
-                                  row.findingId === 'geminacion' ? 'bg-blue-500' :
-                                    row.findingId === 'gingivitis' ? 'bg-red-500' :
-                                      row.findingId === 'giroversion' ? 'bg-blue-500' :
-                                        variantDotColor(row.variant)
-                        }`} />
-                      <span>
-                        {row.findingId === 'giroversion' && row.icon?.includes('_b_thumb')
-                          ? 'Giroversión der a izq'
-                          : row.findingId === 'trat-pulpar'
-                            ? (row.variant === 'blue' ? 'Trat. pulpar (trat. conducto) (Tratamiento de conductos)' : 'Trat. pulpar afectada (trat. conducto) (mal estado)')
-                          : row.findingId === 'pulpectomia'
-                            ? 'Trat. pulpar (pulpectomía)'
-                          : row.findingId === 'pulpotomia'
-                            ? (row.variant === 'blue' ? 'Pulpotomía (Buen estado)' : 'Pulpotomía (mal estado)')
-                          : row.findingId === 'sellantes'
-                            ? (row.variant === 'blue' ? 'Sellantes (buen estado)' : 'Sellantes (mal estado)')
-                            : row.findingId === 'implante'
-                              ? (row.variant === 'blue' ? 'Implante dental (buen estado)' : 'Implante dental (mal estado)')
-                              : row.label}
-                        {row.surfaces && row.surfaces.length > 0 && (
-                          <span className="text-gray-600">
-                            {' '}{row.surfaces.map((s) => SURFACE_LABELS[s]).join(', ')}
-                          </span>
-                        )}
-                      </span>
-                      {row.option && (
-                        <span className="text-xs text-gray-400">· {row.option}</span>
-                      )}
-                    </span>
-                  </td>
-                  <td className="border border-gray-200 px-4 py-2 text-blue-500">
-                    <button type="button" className="flex items-center gap-1 hover:underline">
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                      Vincular
-                    </button>
-                  </td>
-                  <td className="border border-gray-200 px-4 py-2 text-gray-400">
-                    <button type="button" className="flex items-center gap-1 hover:text-gray-600">
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                      </svg>
-                      Agregar
-                    </button>
-                  </td>
-                </tr>
-                )
-              })
-            )}
-
-            {/* Filas de grupos ortodónticos fijos */}
-            {orthoGroups.map((group) => (
-              <tr key={group.id} className="border-b border-gray-200">
-                <td className="border border-gray-200 px-4 py-2 font-medium">
-                  {group.teeth[0]}-{group.teeth[group.teeth.length - 1]}
-                </td>
-                <td className="border border-gray-200 px-4 py-2">
-                  <span className="flex items-center gap-1.5">
-                    <span className={`h-2 w-2 shrink-0 rounded-full ${group.variant === 'red' ? 'bg-red-500' : 'bg-blue-500'}`} />
-                    <span>{group.label}</span>
-                  </span>
-                </td>
-                <td className="border border-gray-200 px-4 py-2 text-blue-500">
-                  <button type="button" className="flex items-center gap-1 hover:underline">
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    Vincular
-                  </button>
-                </td>
-                <td className="border border-gray-200 px-4 py-2 text-gray-400">
-                  <button type="button" className="flex items-center gap-1 hover:text-gray-600">
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Agregar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Campos adicionales inferiores */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 px-4 pb-6 pt-4">
-        {/* Especificaciones */}
-        <div className="flex flex-col">
-          <label className="mb-2 text-sm text-gray-500">Especificaciones:</label>
-          <textarea
-            className="h-28 w-full resize-none rounded-2xl bg-[#f4f8fb] p-3 text-sm text-gray-700 outline-none"
-          />
-        </div>
-        {/* Diagnóstico */}
-        <div className="flex flex-col">
-          <div className="mb-2 flex items-center justify-between">
-            <label className="text-sm text-gray-500">Diagnóstico:</label>
-            <button type="button" className="text-sm font-medium text-cyan-400 hover:text-cyan-500">
-              Usar lista CIE-10
+      {multipleMarkingTarget ? (
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 bg-white">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setShowCancelModal(true)}
+              className="text-gray-400 hover:text-gray-700"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-sm">Hallazgo:</span>
+              <span className={`${multipleMarkingTarget.action.variant === 'red' ? 'text-red-500' : 'text-blue-500'} text-sm font-medium`}>
+                {getDisplayLabel(multipleMarkingTarget)}
+              </span>
+            </div>
           </div>
-          <textarea
-            className="h-28 w-full resize-none rounded-2xl bg-[#f4f8fb] p-3 text-sm text-gray-700 outline-none"
-          />
+          <button
+            type="button"
+            onClick={handleFinishMultipleMarking}
+            className="rounded-md bg-[#519fb2] px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#3e8697] transition-colors"
+          >
+            Terminar
+          </button>
         </div>
-        {/* Observaciones */}
-        <div className="flex flex-col">
-          <label className="mb-2 text-sm text-gray-500">Observaciones:</label>
-          <textarea
-            className="h-28 w-full resize-none rounded-2xl bg-[#f4f8fb] p-3 text-sm text-gray-700 outline-none"
-          />
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 text-xs">
+          <div className="relative">
+            <button
+              ref={multipleMarkingRef}
+              type="button"
+              onClick={() => setMultipleMarkingOpen(!multipleMarkingOpen)}
+              className={`flex items-center gap-1.5 rounded border px-3 py-1.5 ${multipleMarkingOpen
+                  ? 'border-cyan-400 bg-cyan-50 text-cyan-700'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              Marcado múltiple
+            </button>
+            
+            {multipleMarkingOpen && (
+              <MultipleMarkingPopover
+                anchorRef={multipleMarkingRef}
+                onClose={() => setMultipleMarkingOpen(false)}
+                onSelectFinding={(finding, action) => {
+                  setMultipleMarkingOpen(false)
+                  setMultipleMarkingTarget({ finding, action })
+                  setToothFindingsBackup(toothFindings)
+                }}
+              />
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
+              <legend className="px-1 text-[11px] text-gray-500">Doctor</legend>
+              <select className="min-w-[130px] bg-transparent text-sm text-gray-700 outline-none">
+                <option>Diego Cruzado</option>
+              </select>
+            </fieldset>
+            <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
+              <legend className="px-1 text-[11px] text-gray-500">Tipo</legend>
+              <select className="min-w-[90px] bg-transparent text-sm text-gray-700 outline-none">
+                <option>Adultos</option>
+                <option>Niños</option>
+              </select>
+            </fieldset>
+            <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
+              <legend className="px-1 text-[11px] text-gray-500">Nomenclatura</legend>
+              <select className="min-w-[120px] bg-transparent text-sm text-gray-700 outline-none">
+                <option>Internacional</option>
+                <option>Universal</option>
+              </select>
+            </fieldset>
+          </div>
         </div>
-        {/* Plan de trabajo */}
-        <div className="flex flex-col">
-          <label className="mb-2 text-sm text-gray-500">Plan de trabajo:</label>
-          <textarea
-            className="h-28 w-full resize-none rounded-2xl bg-[#f4f8fb] p-3 text-sm text-gray-700 outline-none"
-          />
+      )}
+
+      {/* Chart Area with Sliding Animation */}
+      <div className="relative overflow-hidden px-4 py-6">
+        <div
+          className={`flex transition-transform duration-500 ease-in-out ${
+            multipleMarkingTarget ? '-translate-x-1/2' : 'translate-x-0'
+          }`}
+          style={{ width: '200%' }}
+        >
+          {/* Vista 1: Normal */}
+          <div className="w-1/2 shrink-0">
+            <div className="mx-auto w-full min-w-[600px] xl:min-w-[820px] space-y-5 px-2">
+              <ToothRow
+                teeth={[...upperRightTeeth, ...upperLeftTeeth]}
+                position="upper"
+                selectedTooth={selectedTooth}
+                toothFindings={toothFindings}
+                orthoGroups={orthoGroups}
+                pendingOrtho={pendingOrtho}
+                onSelectTooth={setSelectedTooth}
+                onSelectFinding={handleSelectFinding}
+                onRemoveAllFindings={handleRemoveAllFindings}
+                onRemoveFinding={handleRemoveFinding}
+                onApplySurfaceFindings={handleApplySurfaceFindings}
+                onOrthoAction={handleOrthoAction}
+                onOrthoSecondClick={handleOrthoSecondClick}
+                onRemoveOrthoGroup={handleRemoveOrthoGroup}
+              />
+              <div className="h-px w-full bg-gray-300" />
+              <ToothRow
+                teeth={[...lowerRightTeeth, ...lowerLeftTeeth]}
+                position="lower"
+                selectedTooth={selectedTooth}
+                toothFindings={toothFindings}
+                orthoGroups={orthoGroups}
+                pendingOrtho={pendingOrtho}
+                onSelectTooth={setSelectedTooth}
+                onSelectFinding={handleSelectFinding}
+                onRemoveAllFindings={handleRemoveAllFindings}
+                onRemoveFinding={handleRemoveFinding}
+                onApplySurfaceFindings={handleApplySurfaceFindings}
+                onOrthoAction={handleOrthoAction}
+                onOrthoSecondClick={handleOrthoSecondClick}
+                onRemoveOrthoGroup={handleRemoveOrthoGroup}
+              />
+            </div>
+
+            {/* Plan de tratamiento y campos adicionales DENTRO del deslizador */}
+            <div className="mt-8 border-t border-gray-200 px-4 pb-4 pt-3">
+              <h3 className="mb-3 text-sm font-semibold text-gray-700">Plan de tratamiento</h3>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-[#33475b] text-white">
+                    <th className="px-4 py-2.5 text-left font-medium">N° diente</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Hallazgo</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Servicios</th>
+                    <th className="px-4 py-2.5 text-left font-medium">Nota</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!hasTreatmentRows && (
+                    <tr>
+                      <td colSpan={4} className="border border-gray-200 bg-white py-6 text-center text-xs text-gray-400">
+                        {selectedTooth
+                          ? `Selecciona un hallazgo para el diente ${selectedTooth}`
+                          : 'Haz clic en un diente para registrar hallazgos'}
+                      </td>
+                    </tr>
+                  )}
+
+                  {Object.entries(toothFindings).flatMap(([toothStr, findings]) =>
+                    findings.map((row) => {
+                      let displayToothStr = toothStr
+                      if (row.findingId === 'supernumeraria') {
+                        const toothNum = parseInt(toothStr, 10)
+                        const upperRow = [...upperRightTeeth, ...upperLeftTeeth]
+                        const lowerRow = [...lowerRightTeeth, ...lowerLeftTeeth]
+                        
+                        const upperIdx = upperRow.indexOf(toothNum)
+                        if (upperIdx !== -1 && upperIdx < upperRow.length - 1) {
+                          displayToothStr = `${toothStr}-${upperRow[upperIdx + 1]}`
+                        } else {
+                          const lowerIdx = lowerRow.indexOf(toothNum)
+                          if (lowerIdx !== -1 && lowerIdx < lowerRow.length - 1) {
+                            displayToothStr = `${toothStr}-${lowerRow[lowerIdx + 1]}`
+                          }
+                        }
+                      }
+
+                      return (
+                        <tr key={row.id} className="border-b border-gray-200">
+                          <td className="border border-gray-200 px-4 py-2">{displayToothStr}</td>
+                          <td className="border border-gray-200 px-4 py-2">
+                          <span className="flex items-center gap-1.5">
+                            <span className={`h-2 w-2 shrink-0 rounded-full ${row.findingId === 'defectos-esmalte' ? 'bg-yellow-400' :
+                                row.findingId === 'extraccion' ? 'bg-red-500' :
+                                  row.findingId === 'fractura' ? 'bg-red-500' :
+                                    row.findingId === 'frenillo-corto' ? 'bg-red-500' :
+                                      row.findingId === 'fusion' ? 'bg-blue-500' :
+                                        row.findingId === 'geminacion' ? 'bg-blue-500' :
+                                          row.findingId === 'gingivitis' ? 'bg-red-500' :
+                                            row.findingId === 'giroversion' ? 'bg-blue-500' :
+                                              variantDotColor(row.variant)
+                              }`} />
+                            <span>
+                              {row.findingId === 'giroversion' && row.icon?.includes('_b_thumb')
+                                ? 'Giroversión der a izq'
+                                : row.findingId === 'trat-pulpar'
+                                  ? (row.variant === 'blue' ? 'Trat. pulpar (trat. conducto) (Tratamiento de conductos)' : 'Trat. pulpar afectada (trat. conducto) (mal estado)')
+                                : row.findingId === 'pulpectomia'
+                                  ? 'Trat. pulpar (pulpectomía)'
+                                : row.findingId === 'pulpotomia'
+                                  ? (row.variant === 'blue' ? 'Pulpotomía (Buen estado)' : 'Pulpotomía (mal estado)')
+                                : row.findingId === 'sellantes'
+                                  ? (row.variant === 'blue' ? 'Sellantes (buen estado)' : 'Sellantes (mal estado)')
+                                  : row.findingId === 'implante'
+                                    ? (row.variant === 'blue' ? 'Implante dental (buen estado)' : 'Implante dental (mal estado)')
+                                    : row.label}
+                              {row.surfaces && row.surfaces.length > 0 && (
+                                <span className="text-gray-600">
+                                  {' '}{row.surfaces.map((s) => SURFACE_LABELS[s]).join(', ')}
+                                </span>
+                              )}
+                            </span>
+                            {row.option && (
+                              <span className="text-xs text-gray-400">· {row.option}</span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="border border-gray-200 px-4 py-2 text-blue-500">
+                          <button type="button" className="flex items-center gap-1 hover:underline">
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            Vincular
+                          </button>
+                        </td>
+                        <td className="border border-gray-200 px-4 py-2 text-gray-400">
+                          <button type="button" className="flex items-center gap-1 hover:text-gray-600">
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Agregar
+                          </button>
+                        </td>
+                      </tr>
+                      )
+                    })
+                  )}
+
+                  {orthoGroups.map((group) => (
+                    <tr key={group.id} className="border-b border-gray-200">
+                      <td className="border border-gray-200 px-4 py-2 font-medium">
+                        {group.teeth[0]}-{group.teeth[group.teeth.length - 1]}
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2">
+                        <span className="flex items-center gap-1.5">
+                          <span className={`h-2 w-2 shrink-0 rounded-full ${group.variant === 'red' ? 'bg-red-500' : 'bg-blue-500'}`} />
+                          <span>{group.label}</span>
+                        </span>
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2 text-blue-500">
+                        <button type="button" className="flex items-center gap-1 hover:underline">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                          Vincular
+                        </button>
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2 text-gray-400">
+                        <button type="button" className="flex items-center gap-1 hover:text-gray-600">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
+                          Agregar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 px-4 pb-6 pt-4">
+              <div className="flex flex-col">
+                <label className="mb-2 text-sm text-gray-500">Especificaciones:</label>
+                <textarea
+                  className="h-28 w-full resize-none rounded-2xl bg-[#f4f8fb] p-3 text-sm text-gray-700 outline-none"
+                />
+              </div>
+              <div className="flex flex-col">
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="text-sm text-gray-500">Diagnóstico:</label>
+                  <button type="button" className="text-sm font-medium text-cyan-400 hover:text-cyan-500">
+                    Usar lista CIE-10
+                  </button>
+                </div>
+                <textarea
+                  className="h-28 w-full resize-none rounded-2xl bg-[#f4f8fb] p-3 text-sm text-gray-700 outline-none"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="mb-2 text-sm text-gray-500">Observaciones:</label>
+                <textarea
+                  className="h-28 w-full resize-none rounded-2xl bg-[#f4f8fb] p-3 text-sm text-gray-700 outline-none"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="mb-2 text-sm text-gray-500">Plan de trabajo:</label>
+                <textarea
+                  className="h-28 w-full resize-none rounded-2xl bg-[#f4f8fb] p-3 text-sm text-gray-700 outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Vista 2: Multiple Marking */}
+          <div className="w-1/2 shrink-0">
+            <div className="mx-auto w-full min-w-[600px] xl:min-w-[820px] px-2 h-full">
+              {multipleMarkingTarget && (
+                <MultipleMarkingView
+                  target={multipleMarkingTarget}
+                  toothFindings={toothFindings}
+                  onToggleSurface={handleToggleSurfaceMultiple}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
+
+      {showCancelModal && (
+        <MultipleMarkingCancelModal
+          onCancel={() => setShowCancelModal(false)}
+          onConfirm={() => {
+            if (toothFindingsBackup) setToothFindings(toothFindingsBackup)
+            setMultipleMarkingTarget(null)
+            setToothFindingsBackup(null)
+            setShowCancelModal(false)
+          }}
+        />
+      )}
+
+      {showConfirmModal && multipleMarkingTarget && (
+        <MultipleMarkingConfirmModal
+          target={multipleMarkingTarget}
+          affectedTeeth={affectedTeethForConfirm}
+          onCancel={() => setShowConfirmModal(false)}
+          onConfirm={handleConfirmSave}
+        />
+      )}
     </div>
   )
 }

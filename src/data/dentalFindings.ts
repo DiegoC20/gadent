@@ -33,7 +33,7 @@ export const OPTION_ABBREVIATIONS: Record<string, string> = {
   // Caries
   'Mancha Blanca': 'MB',
   'a nivel del esmalte': 'E',
-  'a nivel de la dentina': 'D',
+  'a nivel de la dentina': 'DE',
   'a nivel de la dentina/compromiso de la pulpa': 'DP',
   'a nivel cervical': 'C',
   
@@ -53,6 +53,17 @@ export const OPTION_ABBREVIATIONS: Record<string, string> = {
   'Incisal': 'I',
   'Mesial': 'M',
   'Distal': 'D',
+  
+  // Movilidad Patológica
+  'Movilidad patológica nivel 1': 'M1',
+  'Movilidad patológica nivel 2': 'M2',
+
+  // Posición Dentaria
+  'Distalizado': 'DI',
+  'Lingualizado': 'L',
+  'Mesializado': 'M',
+  'Palatinizado': 'P',
+  'Vestibularizado': 'V',
 }
 
 export const dentalShortcuts: DentalShortcut[] = [
