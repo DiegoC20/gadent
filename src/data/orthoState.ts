@@ -3,6 +3,10 @@ import {
   upperLeftTeeth,
   lowerRightTeeth,
   lowerLeftTeeth,
+  upperRightTeethDeciduous,
+  upperLeftTeethDeciduous,
+  lowerRightTeethDeciduous,
+  lowerLeftTeethDeciduous,
 } from './odontogramFindings'
 import type { FindingVariant } from './dentalFindings'
 
@@ -39,15 +43,19 @@ export interface PendingOrtho {
 /** Orden visual completo de cada arco (izquierda → derecha) */
 export const UPPER_ROW: number[] = [...upperRightTeeth, ...upperLeftTeeth]
 export const LOWER_ROW: number[] = [...lowerRightTeeth, ...lowerLeftTeeth]
+export const UPPER_DECIDUOUS_ROW: number[] = [...upperRightTeethDeciduous, ...upperLeftTeethDeciduous]
+export const LOWER_DECIDUOUS_ROW: number[] = [...lowerRightTeethDeciduous, ...lowerLeftTeethDeciduous]
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────────────────────────────────────
 
-/** Devuelve en qué arco vive el diente ('upper' | 'lower' | null) */
-export function getToothArch(tooth: number): 'upper' | 'lower' | null {
+/** Devuelve en qué arco vive el diente ('upper' | 'lower' | 'upper-deciduous' | 'lower-deciduous' | null) */
+export function getToothArch(tooth: number): 'upper' | 'lower' | 'upper-deciduous' | 'lower-deciduous' | null {
   if (UPPER_ROW.includes(tooth)) return 'upper'
   if (LOWER_ROW.includes(tooth)) return 'lower'
+  if (UPPER_DECIDUOUS_ROW.includes(tooth)) return 'upper-deciduous'
+  if (LOWER_DECIDUOUS_ROW.includes(tooth)) return 'lower-deciduous'
   return null
 }
 
@@ -61,7 +69,11 @@ export function getTeethBetween(a: number, b: number): number[] | null {
   const archB = getToothArch(b)
   if (!archA || archA !== archB) return null
 
-  const row = archA === 'upper' ? UPPER_ROW : LOWER_ROW
+  const row = archA === 'upper' ? UPPER_ROW :
+              archA === 'lower' ? LOWER_ROW :
+              archA === 'upper-deciduous' ? UPPER_DECIDUOUS_ROW :
+              LOWER_DECIDUOUS_ROW
+              
   const idxA = row.indexOf(a)
   const idxB = row.indexOf(b)
   const lo = Math.min(idxA, idxB)

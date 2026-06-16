@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { dentalFindings, OPTION_ABBREVIATIONS, dentalShortcuts, type DentalFinding, type FindingAction } from '../../data/dentalFindings'
 import { variantDotColor, type AppliedFinding, type ToothSurface } from '../../data/odontogramState'
+import { getToothLabel } from '../../data/odontogramFindings'
 import { getOrthoRole, type OrthoRole, type OrthoGroup, type OrthoType } from '../../data/orthoState'
 import { SURFACE_MODAL_CONFIG } from './SurfaceModal'
 import type { SurfaceModalType } from './SurfaceModal'
@@ -61,7 +62,9 @@ function ToothButton({
   onRemoveFinding,
   onApplySurfaceFindings,
   onOrthoAction,
+  onOrthoSecondClick,
   onRemoveOrthoGroup,
+  nomenclatura,
 }: ToothButtonProps) {
   const isUpper = position === 'upper'
   const toothBtnRef = useRef<HTMLButtonElement>(null)
@@ -245,7 +248,7 @@ function ToothButton({
         <>
           {renderAbbreviations()}
           <ToothNoteBox toothNumber={number} />
-          <span className="my-0.5 text-sm font-medium text-gray-500">{number}</span>
+          <span className="my-0.5 text-sm font-medium text-gray-500">{getToothLabel(number, nomenclatura)}</span>
         </>
       )}
 
@@ -441,7 +444,7 @@ function ToothButton({
 
       {!isUpper && (
         <>
-          <span className="my-0.5 text-sm font-medium text-gray-500">{number}</span>
+          <span className="my-0.5 text-sm font-medium text-gray-500">{getToothLabel(number, nomenclatura)}</span>
           <ToothNoteBox toothNumber={number} />
           {renderAbbreviations()}
         </>

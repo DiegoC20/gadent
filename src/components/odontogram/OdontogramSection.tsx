@@ -5,6 +5,11 @@ import {
   lowerRightTeeth,
   upperLeftTeeth,
   upperRightTeeth,
+  upperRightTeethDeciduous,
+  upperLeftTeethDeciduous,
+  lowerRightTeethDeciduous,
+  lowerLeftTeethDeciduous,
+  getToothLabel,
 } from '../../data/odontogramFindings'
 import {
   createAppliedFinding,
@@ -43,6 +48,7 @@ function ToothRow({
   onOrthoAction,
   onOrthoSecondClick,
   onRemoveOrthoGroup,
+  nomenclatura,
 }: {
   teeth: number[]
   position: 'upper' | 'lower'
@@ -58,6 +64,7 @@ function ToothRow({
   onOrthoAction: (tooth: number, findingId: string, variant: 'blue' | 'red', type: OrthoType) => void
   onOrthoSecondClick: (secondTooth: number) => void
   onRemoveOrthoGroup: (groupId: string) => void
+  nomenclatura: 'Internacional' | 'ADA'
 }) {
   const midpoint = teeth.length / 2
   const align = position === 'upper' ? 'items-end' : 'items-start'
@@ -97,6 +104,7 @@ function ToothRow({
             onOrthoAction={onOrthoAction}
             onOrthoSecondClick={onOrthoSecondClick}
             onRemoveOrthoGroup={onRemoveOrthoGroup}
+            nomenclatura={nomenclatura}
           />
         )
       })}
@@ -106,6 +114,8 @@ function ToothRow({
 
 function OdontogramSection() {
   const [activeTab, setActiveTab] = useState<'inicial' | 'evolucion' | 'alta'>('inicial')
+  const [patientType, setPatientType] = useState<'Adultos' | 'Niño' | 'Mixto'>('Adultos')
+  const [nomenclatura, setNomenclatura] = useState<'Internacional' | 'ADA'>('Internacional')
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null)
   const [multipleMarkingOpen, setMultipleMarkingOpen] = useState(false)
   const multipleMarkingRef = useRef<HTMLButtonElement>(null)
@@ -210,16 +220,20 @@ function OdontogramSection() {
         // No existe, crearlo
         const variant = multipleMarkingTarget?.action.variant || 'blue'
         const label = multipleMarkingTarget?.finding.label || ''
-        const surfacesToSet = surface === 'completo' ? [] : [surface as ToothSurface]
+        const icon = multipleMarkingTarget?.action.icon || ''
         
         const newFinding: AppliedFinding = {
           id: `${tooth}-${type}-${Date.now()}`,
           findingId: type,
           label,
           variant,
-          icon: '',
-          surfaces: surfacesToSet,
+          icon,
         }
+        
+        if (surface !== 'completo') {
+          newFinding.surfaces = [surface as ToothSurface]
+        }
+        
         return { ...prev, [tooth]: [...findings, newFinding] }
       }
     })
@@ -279,6 +293,9 @@ function OdontogramSection() {
                  
     const affected: { tooth: number; surfaces: ToothSurface[] }[] = []
 
+    const findingId = multipleMarkingTarget.finding.id
+    const hasOptions = findingId === 'caries' || findingId === 'restau-ok' || findingId === 'restau-nok' || findingId === 'defectos-esmalte' || findingId === 'movilidad' || findingId === 'posicion'
+
     for (const toothStr in toothFindings) {
       const toothNum = parseInt(toothStr, 10)
       const currentList = toothFindings[toothNum]
@@ -287,18 +304,26 @@ function OdontogramSection() {
       const currentFinding = currentList.find(f => f.findingId === type)
       const backupFinding = backupList.find(f => f.findingId === type)
       
-      if (currentFinding && currentFinding.surfaces) {
-        const currentSurfaces = [...currentFinding.surfaces].sort().join(',')
-        const backupSurfaces = backupFinding?.surfaces ? [...backupFinding.surfaces].sort().join(',') : ''
+      if (currentFinding) {
+        const isSurfaceBased = type === 'caries' || type === 'restau-ok' || type === 'restau-nok'
         
-        if (currentSurfaces !== backupSurfaces && currentFinding.surfaces.length > 0) {
-          affected.push({ tooth: toothNum, surfaces: currentFinding.surfaces })
+        if (isSurfaceBased) {
+          if (currentFinding.surfaces) {
+            const currentSurfaces = [...currentFinding.surfaces].sort().join(',')
+            const backupSurfaces = backupFinding?.surfaces ? [...backupFinding.surfaces].sort().join(',') : ''
+            
+            if (currentSurfaces !== backupSurfaces && currentFinding.surfaces.length > 0) {
+              affected.push({ tooth: toothNum, surfaces: currentFinding.surfaces })
+            }
+          }
+        } else if (hasOptions) {
+          // Para hallazgos de diente completo que tienen opciones
+          if (!backupFinding) {
+            affected.push({ tooth: toothNum, surfaces: [] })
+          }
         }
       }
     }
-
-    const findingId = multipleMarkingTarget.finding.id
-    const hasOptions = findingId === 'caries' || findingId === 'restau-ok' || findingId === 'restau-nok' || findingId === 'defectos-esmalte' || findingId === 'movilidad' || findingId === 'posicion'
 
     if (affected.length > 0 && hasOptions) {
       setAffectedTeethForConfirm(affected)
@@ -443,24 +468,37 @@ function OdontogramSection() {
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
-            <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
-              <legend className="px-1 text-[11px] text-gray-500">Doctor</legend>
-              <select className="min-w-[130px] bg-transparent text-sm text-gray-700 outline-none">
-                <option>Diego Cruzado</option>
-              </select>
-            </fieldset>
-            <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
-              <legend className="px-1 text-[11px] text-gray-500">Tipo</legend>
-              <select className="min-w-[90px] bg-transparent text-sm text-gray-700 outline-none">
-                <option>Adultos</option>
-                <option>Niños</option>
-              </select>
-            </fieldset>
+            {!hasTreatmentRows && (
+              <>
+                <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
+                  <legend className="px-1 text-[11px] text-gray-500">Doctor</legend>
+                  <select className="min-w-[130px] bg-transparent text-sm text-gray-700 outline-none">
+                    <option>Diego Cruzado</option>
+                  </select>
+                </fieldset>
+                <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
+                  <legend className="px-1 text-[11px] text-gray-500">Tipo</legend>
+                  <select 
+                    value={patientType}
+                    onChange={(e) => setPatientType(e.target.value as any)}
+                    className="min-w-[90px] bg-transparent text-sm text-gray-700 outline-none"
+                  >
+                    <option>Niño</option>
+                    <option>Mixto</option>
+                    <option>Adultos</option>
+                  </select>
+                </fieldset>
+              </>
+            )}
             <fieldset className="relative rounded border border-gray-300 px-3 pb-1.5 pt-2">
               <legend className="px-1 text-[11px] text-gray-500">Nomenclatura</legend>
-              <select className="min-w-[120px] bg-transparent text-sm text-gray-700 outline-none">
+              <select 
+                value={nomenclatura}
+                onChange={(e) => setNomenclatura(e.target.value as any)}
+                className="min-w-[120px] bg-transparent text-sm text-gray-700 outline-none"
+              >
                 <option>Internacional</option>
-                <option>Universal</option>
+                <option>ADA</option>
               </select>
             </fieldset>
           </div>
@@ -477,40 +515,92 @@ function OdontogramSection() {
         >
           {/* Vista 1: Normal */}
           <div className="w-1/2 shrink-0">
-            <div className="mx-auto w-full min-w-[600px] xl:min-w-[820px] space-y-5 px-2">
-              <ToothRow
-                teeth={[...upperRightTeeth, ...upperLeftTeeth]}
-                position="upper"
-                selectedTooth={selectedTooth}
-                toothFindings={toothFindings}
-                orthoGroups={orthoGroups}
-                pendingOrtho={pendingOrtho}
-                onSelectTooth={setSelectedTooth}
-                onSelectFinding={handleSelectFinding}
-                onRemoveAllFindings={handleRemoveAllFindings}
-                onRemoveFinding={handleRemoveFinding}
-                onApplySurfaceFindings={handleApplySurfaceFindings}
-                onOrthoAction={handleOrthoAction}
-                onOrthoSecondClick={handleOrthoSecondClick}
-                onRemoveOrthoGroup={handleRemoveOrthoGroup}
-              />
+            <div className="mx-auto w-full min-w-[600px] xl:min-w-[820px] space-y-6 px-2">
+              {(patientType === 'Adultos' || patientType === 'Mixto') && (
+                <ToothRow
+                  teeth={[...upperRightTeeth, ...upperLeftTeeth]}
+                  position="upper"
+                  selectedTooth={selectedTooth}
+                  toothFindings={toothFindings}
+                  orthoGroups={orthoGroups}
+                  pendingOrtho={pendingOrtho}
+                  onSelectTooth={setSelectedTooth}
+                  onSelectFinding={handleSelectFinding}
+                  onRemoveAllFindings={handleRemoveAllFindings}
+                  onRemoveFinding={handleRemoveFinding}
+                  onApplySurfaceFindings={handleApplySurfaceFindings}
+                  onOrthoAction={handleOrthoAction}
+                  onOrthoSecondClick={handleOrthoSecondClick}
+                  onRemoveOrthoGroup={handleRemoveOrthoGroup}
+                  nomenclatura={nomenclatura}
+                />
+              )}
+
+              {(patientType === 'Niño' || patientType === 'Mixto') && (
+                <div className={patientType === 'Mixto' ? 'mx-auto w-[65%]' : 'w-full'}>
+                  <ToothRow
+                    teeth={[...upperRightTeethDeciduous, ...upperLeftTeethDeciduous]}
+                    position="upper"
+                    selectedTooth={selectedTooth}
+                    toothFindings={toothFindings}
+                    orthoGroups={orthoGroups}
+                    pendingOrtho={pendingOrtho}
+                    onSelectTooth={setSelectedTooth}
+                    onSelectFinding={handleSelectFinding}
+                    onRemoveAllFindings={handleRemoveAllFindings}
+                    onRemoveFinding={handleRemoveFinding}
+                    onApplySurfaceFindings={handleApplySurfaceFindings}
+                    onOrthoAction={handleOrthoAction}
+                    onOrthoSecondClick={handleOrthoSecondClick}
+                    onRemoveOrthoGroup={handleRemoveOrthoGroup}
+                    nomenclatura={nomenclatura}
+                  />
+                </div>
+              )}
+
               <div className="h-px w-full bg-gray-300" />
-              <ToothRow
-                teeth={[...lowerRightTeeth, ...lowerLeftTeeth]}
-                position="lower"
-                selectedTooth={selectedTooth}
-                toothFindings={toothFindings}
-                orthoGroups={orthoGroups}
-                pendingOrtho={pendingOrtho}
-                onSelectTooth={setSelectedTooth}
-                onSelectFinding={handleSelectFinding}
-                onRemoveAllFindings={handleRemoveAllFindings}
-                onRemoveFinding={handleRemoveFinding}
-                onApplySurfaceFindings={handleApplySurfaceFindings}
-                onOrthoAction={handleOrthoAction}
-                onOrthoSecondClick={handleOrthoSecondClick}
-                onRemoveOrthoGroup={handleRemoveOrthoGroup}
-              />
+
+              {(patientType === 'Niño' || patientType === 'Mixto') && (
+                <div className={patientType === 'Mixto' ? 'mx-auto w-[65%]' : 'w-full'}>
+                  <ToothRow
+                    teeth={[...lowerRightTeethDeciduous, ...lowerLeftTeethDeciduous]}
+                    position="lower"
+                    selectedTooth={selectedTooth}
+                    toothFindings={toothFindings}
+                    orthoGroups={orthoGroups}
+                    pendingOrtho={pendingOrtho}
+                    onSelectTooth={setSelectedTooth}
+                    onSelectFinding={handleSelectFinding}
+                    onRemoveAllFindings={handleRemoveAllFindings}
+                    onRemoveFinding={handleRemoveFinding}
+                    onApplySurfaceFindings={handleApplySurfaceFindings}
+                    onOrthoAction={handleOrthoAction}
+                    onOrthoSecondClick={handleOrthoSecondClick}
+                    onRemoveOrthoGroup={handleRemoveOrthoGroup}
+                    nomenclatura={nomenclatura}
+                  />
+                </div>
+              )}
+
+              {(patientType === 'Adultos' || patientType === 'Mixto') && (
+                <ToothRow
+                  teeth={[...lowerRightTeeth, ...lowerLeftTeeth]}
+                  position="lower"
+                  selectedTooth={selectedTooth}
+                  toothFindings={toothFindings}
+                  orthoGroups={orthoGroups}
+                  pendingOrtho={pendingOrtho}
+                  onSelectTooth={setSelectedTooth}
+                  onSelectFinding={handleSelectFinding}
+                  onRemoveAllFindings={handleRemoveAllFindings}
+                  onRemoveFinding={handleRemoveFinding}
+                  onApplySurfaceFindings={handleApplySurfaceFindings}
+                  onOrthoAction={handleOrthoAction}
+                  onOrthoSecondClick={handleOrthoSecondClick}
+                  onRemoveOrthoGroup={handleRemoveOrthoGroup}
+                  nomenclatura={nomenclatura}
+                />
+              )}
             </div>
 
             {/* Plan de tratamiento y campos adicionales DENTRO del deslizador */}
@@ -530,7 +620,7 @@ function OdontogramSection() {
                     <tr>
                       <td colSpan={4} className="border border-gray-200 bg-white py-6 text-center text-xs text-gray-400">
                         {selectedTooth
-                          ? `Selecciona un hallazgo para el diente ${selectedTooth}`
+                          ? `Selecciona un hallazgo para el diente ${getToothLabel(selectedTooth, nomenclatura)}`
                           : 'Haz clic en un diente para registrar hallazgos'}
                       </td>
                     </tr>
@@ -538,19 +628,31 @@ function OdontogramSection() {
 
                   {Object.entries(toothFindings).flatMap(([toothStr, findings]) =>
                     findings.map((row) => {
-                      let displayToothStr = toothStr
+                      let displayToothStr = getToothLabel(parseInt(toothStr, 10), nomenclatura)
                       if (row.findingId === 'supernumeraria') {
                         const toothNum = parseInt(toothStr, 10)
                         const upperRow = [...upperRightTeeth, ...upperLeftTeeth]
                         const lowerRow = [...lowerRightTeeth, ...lowerLeftTeeth]
+                        const upperDeciduousRow = [...upperRightTeethDeciduous, ...upperLeftTeethDeciduous]
+                        const lowerDeciduousRow = [...lowerRightTeethDeciduous, ...lowerLeftTeethDeciduous]
                         
                         const upperIdx = upperRow.indexOf(toothNum)
                         if (upperIdx !== -1 && upperIdx < upperRow.length - 1) {
-                          displayToothStr = `${toothStr}-${upperRow[upperIdx + 1]}`
+                          displayToothStr = `${getToothLabel(toothNum, nomenclatura)}-${getToothLabel(upperRow[upperIdx + 1], nomenclatura)}`
                         } else {
                           const lowerIdx = lowerRow.indexOf(toothNum)
                           if (lowerIdx !== -1 && lowerIdx < lowerRow.length - 1) {
-                            displayToothStr = `${toothStr}-${lowerRow[lowerIdx + 1]}`
+                            displayToothStr = `${getToothLabel(toothNum, nomenclatura)}-${getToothLabel(lowerRow[lowerIdx + 1], nomenclatura)}`
+                          } else {
+                            const upperDecIdx = upperDeciduousRow.indexOf(toothNum)
+                            if (upperDecIdx !== -1 && upperDecIdx < upperDeciduousRow.length - 1) {
+                              displayToothStr = `${getToothLabel(toothNum, nomenclatura)}-${getToothLabel(upperDeciduousRow[upperDecIdx + 1], nomenclatura)}`
+                            } else {
+                              const lowerDecIdx = lowerDeciduousRow.indexOf(toothNum)
+                              if (lowerDecIdx !== -1 && lowerDecIdx < lowerDeciduousRow.length - 1) {
+                                displayToothStr = `${getToothLabel(toothNum, nomenclatura)}-${getToothLabel(lowerDeciduousRow[lowerDecIdx + 1], nomenclatura)}`
+                              }
+                            }
                           }
                         }
                       }
@@ -688,8 +790,11 @@ function OdontogramSection() {
               {multipleMarkingTarget && (
                 <MultipleMarkingView
                   target={multipleMarkingTarget}
+                  patientType={patientType}
+                  nomenclatura={nomenclatura}
                   toothFindings={toothFindings}
                   onToggleSurface={handleToggleSurfaceMultiple}
+                  onCancel={() => setShowCancelModal(true)}
                 />
               )}
             </div>

@@ -173,13 +173,17 @@ function MultipleMarkingConfirmModal({ target, affectedTeeth, onCancel, onConfir
                     <tr key={toothData.tooth} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="px-2 py-3 align-middle">
                         <div className="flex flex-col items-center">
-                          <span className="text-xs text-gray-500">{toothData.tooth}</span>
-                          <ToothPartsSvg 
-                            selectedSurfaces={toothData.surfaces} 
-                            color={color} 
-                            onToggle={() => {}} 
-                            size={32} 
-                          />
+                          <span className="text-xs font-medium text-gray-600">{toothData.tooth}</span>
+                          {toothData.surfaces && toothData.surfaces.length > 0 && (
+                            <div className="mt-1">
+                              <ToothPartsSvg 
+                                selectedSurfaces={toothData.surfaces} 
+                                color={color} 
+                                onToggle={() => {}} 
+                                size={32} 
+                              />
+                            </div>
+                          )}
                         </div>
                       </td>
                       {options.map((opt) => (
