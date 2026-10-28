@@ -130,3 +130,7 @@ export const patients: Patient[] = [
 export function getPatientById(id: number): Patient | undefined {
   return patients.find((p) => p.id === id)
 }
+
+export function addPatient(patient: Patient) {
+  patients.unshift(patient)
+}

@@ -82,7 +82,7 @@ function PatientHistoryPage() {
           {renderSection()}
         </main>
 
-        {isRightPanelOpen && <RightPanel />}
+        {isRightPanelOpen && <RightPanel patient={patient || null} />}
       </div>
     </>
   )

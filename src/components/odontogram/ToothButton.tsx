@@ -462,7 +462,7 @@ function ToothButton({
         <ToothPopover
           toothNumber={number}
           anchorRef={toothBtnRef}
-          placement="above"
+          placement={isUpper ? 'below' : 'above'}
           appliedFindings={appliedFindings}
           orthoGroups={orthoGroups}
           onClose={onDeselect}

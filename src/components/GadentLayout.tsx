@@ -25,6 +25,7 @@ function GadentLayout() {
           </NavLink>
           <NavLink
             to="/pacientes"
+            end
             className={({ isActive }) =>
               `relative py-3 text-sm font-medium text-white transition-colors hover:text-cyan-200 ${
                 isActive ? 'text-white' : 'text-white/80'

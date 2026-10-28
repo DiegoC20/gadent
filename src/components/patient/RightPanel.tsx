@@ -1,6 +1,16 @@
-export default function RightPanel() {
+import { useState } from 'react'
+import type { Patient } from '../../types/patient'
+import CreateBudgetDrawer from './CreateBudgetDrawer'
+
+interface RightPanelProps {
+  patient: Patient | null
+}
+
+export default function RightPanel({ patient }: RightPanelProps) {
+  const [isBudgetDrawerOpen, setIsBudgetDrawerOpen] = useState(false)
   return (
-    <aside className="w-[300px] shrink-0 overflow-y-auto bg-white p-6 shadow-sm border-l border-gray-100 flex flex-col gap-10">
+    <>
+      <aside className="w-[300px] shrink-0 overflow-y-auto bg-white p-6 shadow-sm border-l border-gray-100 flex flex-col gap-10">
       
       {/* Presupuesto Section */}
       <div className="flex flex-col items-center">
@@ -39,7 +49,10 @@ export default function RightPanel() {
           </div>
         </div>
 
-        <button className="rounded-md bg-[#318B9F] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#256c7d] transition-colors w-full sm:w-auto shadow-sm">
+        <button 
+          onClick={() => setIsBudgetDrawerOpen(true)}
+          className="rounded-md bg-[#318B9F] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#256c7d] transition-colors w-full sm:w-auto shadow-sm"
+        >
           + Crear Presupuesto
         </button>
       </div>
@@ -108,5 +121,12 @@ export default function RightPanel() {
       </div>
 
     </aside>
+      
+      <CreateBudgetDrawer 
+        isOpen={isBudgetDrawerOpen}
+        onClose={() => setIsBudgetDrawerOpen(false)}
+        patient={patient}
+      />
+    </>
   )
 }

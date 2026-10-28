@@ -108,24 +108,42 @@ function ToothPopover({
   const anchor = anchorRef.current?.getBoundingClientRect()
   if (!anchor) return null
 
-  // Si se pide colocar abajo, pero no hay espacio suficiente en la pantalla (asumiendo ~350px de popover)
+  // Estimamos una altura máxima deseada de 350px para el popover completo
+  const ESTIMATED_HEIGHT = 380
+
   let finalPlacement = placement
-  if (placement === 'below' && anchor.bottom + 350 > window.innerHeight) {
-    finalPlacement = 'above'
+  if (placement === 'below' && anchor.bottom + ESTIMATED_HEIGHT > window.innerHeight) {
+    // Si se pidió abajo pero no cabe, lo mandamos arriba si hay más espacio arriba
+    if (anchor.top > window.innerHeight - anchor.bottom) {
+      finalPlacement = 'above'
+    }
+  } else if (placement === 'above' && anchor.top - ESTIMATED_HEIGHT < 0) {
+    // Si se pidió arriba pero no cabe, lo mandamos abajo si hay más espacio abajo
+    if (window.innerHeight - anchor.bottom > anchor.top) {
+      finalPlacement = 'below'
+    }
   }
+
+  // Calculamos el espacio real disponible en la dirección elegida
+  const spaceAvailable = finalPlacement === 'above' 
+    ? anchor.top - 16 // 16px de padding respecto al borde superior
+    : window.innerHeight - anchor.bottom - 16
+
+  // La lista interior (ul) puede scrollear. Le restamos aprox 140px del header del popover.
+  const listMaxHeight = Math.max(150, spaceAvailable - 140)
 
   const top =
     finalPlacement === 'above'
-      ? anchor.top + window.scrollY - 8
-      : anchor.bottom + window.scrollY + 8
-  const left = anchor.left + window.scrollX + anchor.width / 2
+      ? anchor.top - 8
+      : anchor.bottom + 8
+  const left = anchor.left + anchor.width / 2
   const translateY = finalPlacement === 'above' ? '-100%' : '0%'
 
   return createPortal(
     <div className="fixed inset-0 z-[9999]" onClick={onClose}>
       <div
-        className="absolute w-72 rounded-xl border border-gray-200 bg-white shadow-xl"
-        style={{ top, left, transform: `translateX(-50%) translateY(${translateY})` }}
+        className="absolute w-72 rounded-xl border border-gray-200 bg-white shadow-xl flex flex-col"
+        style={{ top, left, transform: `translateX(-50%) translateY(${translateY})`, maxHeight: spaceAvailable }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Tabs Agregar / Eliminar ─── */}
@@ -199,7 +217,10 @@ function ToothPopover({
             </div>
 
             {/* Lista de hallazgos */}
-            <ul className="max-h-60 overflow-y-auto py-1">
+            <ul 
+              className="overflow-y-auto py-1"
+              style={{ maxHeight: listMaxHeight }}
+            >
               {filtered.map((finding) => (
                 <li
                   key={finding.id}
@@ -251,7 +272,10 @@ function ToothPopover({
 
         {/* ── Tab ELIMINAR ─────────────────────────────────────────────────── */}
         {hasFindings && activeTab === 'eliminar' && (
-          <div className="p-3 space-y-2">
+          <div 
+            className="p-3 space-y-2 overflow-y-auto"
+            style={{ maxHeight: listMaxHeight }}
+          >
             {appliedFindings.map((finding) => (
               <button
                 key={finding.id}
